@@ -5,101 +5,49 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 
-// MongoDB కి కనెక్ట్ అవ్వడం
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Database Connected Successfully!'))
-  .catch((err) => console.log('Database Connection Failed:', err));
-  // --- Step 4: Schema & Model ---
+    .then(() => console.log('✅ Database Connected Successfully!'))
+    .catch((err) => console.log('❌ Database Connection Failed:', err));
+
+// Schema & Model
 const contactSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true },
-  message: { type: String, required: true },
-  date: { type: Date, default: Date.now }
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    message: { type: String, required: true },
+    date: { type: Date, default: Date.now }
 });
 
 const Contact = mongoose.model('Contact', contactSchema);
-// ------------------------------
 
-const app = express();
-app.use(express.json());
-const PORT = process.env.PORT || 9000;
-app.listen(PORT, () => {
-    console.log(`server running at http://localhost:${PORT}`);
-});
-
-// Middleware
-app.use(cors()); // Allow requests from frontend 
-// Serve static files (Your HTML/CSS/JS)
-// Make sure your HTML file is inside a folder named 'public'
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ================= EMAIL TRANSPORTER CONFIGURATION =================
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // ఇలా మార్చండి
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
-// ================= API ROUTE: CONTACT FORM =================
+// API Route
 app.post('/api/contact', async (req, res) => {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+        return res.status(400).json({ success: false, message: "All fields are required." });
+    }
+
     try {
-        const { name, email, message } = req.body;
         const newContact = new Contact({ name, email, message });
-        
-        // 1. డేటాబేస్ లో సేవ్ చెయ్
         await newContact.save();
-        
-        // 2. మెయిల్ పంపే కోడ్ ని ప్రస్తుతానికి ఆపేద్దాం (ఎర్రర్ రాకుండా)
-        console.log("Data saved to MongoDB, skipping email for now.");
-
-        // 3. వెంటనే సక్సెస్ రెస్పాన్స్ పంపు
-        res.status(200).json({ success: true, message: 'Message saved successfully!' });
+        console.log("✅ Message saved to MongoDB!");
+        return res.status(200).json({ success: true, message: "Message saved successfully!" });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-// ------------------------------
-
-    // Email Content
-    const mailOptions = {
-        from: process.env.EMAIL_USER, // Your email
-        to: process.env.EMAIL_USER,   // Send to yourself (or a business email)
-        subject: `Portfolio Contact: New message from ${name}`,
-        html: `
-            <div style="padding: 20px; border: 1px solid #ddd; border-radius: 8px; font-family: sans-serif;">
-                <h2 style="color: #00d4ff;">New Contact Form Submission</h2>
-                <p><strong>Name:</strong> ${name}</p>
-                <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-                <hr style="border-top: 1px solid #eee;">
-                <h3>Message:</h3>
-                <p style="white-space: pre-wrap;">${message}</p>
-            </div>
-        `,
-        replyTo: email // Allows you to reply directly to the sender
-    };
-
-    try {
-        // Send Email
-        await transporter.sendMail(mailOptions);
-        console.log(`Email sent from ${email}`);
-        
-        res.status(200).json({ 
-            success: true, 
-            message: "Message sent successfully! I will get back to you soon." 
-        });
-    } catch (error) {
-        console.error("Error sending email:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Server error. Could not send message." 
-        });
+        console.error("❌ Server Error:", error);
+        return res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
-// ================= START SERVER =================
-app.listen(9000, () => {
+// Start Server
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
