@@ -44,22 +44,23 @@ const transporter = nodemailer.createTransport({
 
 // ================= API ROUTE: CONTACT FORM =================
 app.post('/api/contact', async (req, res) => {
-    const { name, email, message } = req.body;
+    try {
+        const { name, email, message } = req.body;
+        const newContact = new Contact({ name, email, message });
+        
+        // 1. డేటాబేస్ లో సేవ్ చెయ్
+        await newContact.save();
+        
+        // 2. మెయిల్ పంపే కోడ్ ని ప్రస్తుతానికి ఆపేద్దాం (ఎర్రర్ రాకుండా)
+        console.log("Data saved to MongoDB, skipping email for now.");
 
-    // Basic Validation
-    if (!name || !email || !message) {
-        return res.status(400).json({ success: false, message: "All fields are required." });
+        // 3. వెంటనే సక్సెస్ రెస్పాన్స్ పంపు
+        res.status(200).json({ success: true, message: 'Message saved successfully!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
-    // --- Step 5: Save to Database ---
-try {
-    const newContact = new Contact({ name, email, message });
-    await newContact.save();
-    console.log("✅ Data saved to MongoDB!");
-} catch (dbError) {
-    console.error("❌ Database Save Error:", dbError);
-    // డేటాబేస్ సేవ్ అవ్వకపోయినా ఈమెయిల్ వెళ్లాలనుకుంటే ఇక్కడితో ఆపేయవచ్చు
-    // లేదా రిటర్న్ ఎర్రర్ పంపవచ్చు.
-}
+});
 // ------------------------------
 
     // Email Content
