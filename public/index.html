@@ -701,7 +701,7 @@ contactForm.addEventListener('submit', async (e) => {
 
     try {
         // Send data to your Node.js Backend
-        const response = await fetch('/api/contact', {
+        const response = await fetch('https://akashreddyy.onrender.com/api/contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, message })
